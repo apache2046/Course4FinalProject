@@ -87,12 +87,13 @@ class LocalPlanner:
         # consecutive waypoints, then use the np.arctan2() function.
         # TODO: INSERT YOUR CODE BETWEEN THE DASHED LINES
         # ------------------------------------------------------------------
-        # if ...
-        # delta_x = ...
-        # delta_y = ...
-        # else: ...
-        # ...
-        # heading = ...
+        if goal_index < len(waypoints) - 1:
+            delta_x = waypoints[goal_index + 1][0] - waypoints[goal_index + 1][0]
+            delta_y = waypoints[goal_index + 1][1] - waypoints[goal_index + 1][1]
+        else:
+            delta_x = waypoints[goal_index][0] - waypoints[goal_index - 1][0]
+            delta_y = waypoints[goal_index][1] - waypoints[goal_index - 1][1]
+        heading = np.math.atan2(delta_y, delta_x)
         # ------------------------------------------------------------------
 
         # Compute the center goal state in the local frame using 
@@ -105,8 +106,8 @@ class LocalPlanner:
         # This is done by subtracting the ego_state from the goal_state_local.
         # TODO: INSERT YOUR CODE BETWEEN THE DASHED LINES
         # ------------------------------------------------------------------
-        # goal_state_local[0] -= ... 
-        # goal_state_local[1] -= ... 
+        goal_state_local[0] -= ego_state[0]
+        goal_state_local[1] -= ego_state[1]
         # ------------------------------------------------------------------
 
         # Rotate such that the ego state has zero heading in the new frame.
@@ -116,15 +117,17 @@ class LocalPlanner:
         # current yaw corresponds to theta = 0 in the new local frame.
         # TODO: INSERT YOUR CODE BETWEEN THE DASHED LINES
         # ------------------------------------------------------------------
-        # goal_x = ...
-        # goal_y = ...
+        theta = -ego_state[2]
+        rot_arr = np.array([[cos(theta), -sin(theta)],[sin(theta), cos(theta)]])
+        goal_x, goal_y = rot_arr @ goal_state_local[:1]
+        
         # ------------------------------------------------------------------
 
         # Compute the goal yaw in the local frame by subtracting off the 
         # current ego yaw from the heading variable.
         # TODO: INSERT YOUR CODE BETWEEN THE DASHED LINES
         # ------------------------------------------------------------------
-        # goal_t = ...
+        goal_t = heading + theta
         # ------------------------------------------------------------------
 
         # Velocity is preserved after the transformation.
@@ -151,8 +154,8 @@ class LocalPlanner:
             # and sin(goal_theta + pi/2), respectively.
             # TODO: INSERT YOUR CODE BETWEEN THE DASHED LINES
             # ------------------------------------------------------------------
-            # x_offset = ...
-            # y_offset = ...
+            x_offset = -offset * sin(heading)
+            y_offset = -offset * cos(heading)
             # ------------------------------------------------------------------
 
             goal_state_set.append([goal_x + x_offset, 
