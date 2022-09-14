@@ -121,9 +121,10 @@ class BehaviouralPlanner:
             # the deceleration state.
             # TODO: INSERT YOUR CODE BETWEEN THE DASHED LINES
             # ------------------------------------------------------------------
+            # print("BP1", stop_sign_found)
             if stop_sign_found:
                 self._goal_state[2] = 0
-                self._state == DECELERATE_TO_STOP
+                self._state = DECELERATE_TO_STOP
             # ------------------------------------------------------------------
 
             pass
@@ -135,8 +136,9 @@ class BehaviouralPlanner:
         elif self._state == DECELERATE_TO_STOP:
             # TODO: INSERT YOUR CODE BETWEEN THE DASHED LINES
             # ------------------------------------------------------------------
-            
+            # print("BP2", closed_loop_speed) 
             if closed_loop_speed <= STOP_THRESHOLD:
+                # print("BP3") 
                 self._state = STAY_STOPPED
                 self._stop_count = 0
             # ------------------------------------------------------------------
@@ -147,12 +149,14 @@ class BehaviouralPlanner:
         # least STOP_COUNTS number of cycles. If so, we can now leave
         # the stop sign and transition to the next state.
         elif self._state == STAY_STOPPED:
+            # print("BP4") 
             # We have stayed stopped for the required number of cycles.
             # Allow the ego vehicle to leave the stop sign. Once it has
             # passed the stop sign, return to lane following.
             # You should use the get_closest_index(), get_goal_index(), and 
             # check_for_stop_signs() helper functions.
             if self._stop_count == STOP_COUNTS:
+                # print("BP5") 
                 # TODO: INSERT YOUR CODE BETWEEN THE DASHED LINES
                 # --------------------------------------------------------------
                 closest_len, closest_index = get_closest_index(waypoints, ego_state)
@@ -175,12 +179,14 @@ class BehaviouralPlanner:
                 # --------------------------------------------------------------
                 if not stop_sign_found:
                     self._state = FOLLOW_LANE
+                    self._stop_count = 0
                 # --------------------------------------------------------------
 
                 pass
 
             # Otherwise, continue counting.
             else:
+                # print("BP6") 
                 # TODO: INSERT YOUR CODE BETWEEN THE DASHED LINES
                 # --------------------------------------------------------------
                 self._stop_count += 1
@@ -254,7 +260,8 @@ class BehaviouralPlanner:
         # TODO: INSERT YOUR CODE BETWEEN THE DASHED LINES
         # ------------------------------------------------------------------
         while wp_index < len(waypoints) - 1:
-            arc_length += np.linalg.norm(waypoints[wp_index][0]-waypoints[wp_index + 1][0], waypoints[wp_index][1]-waypoints[wp_index + 1][1])
+            #print("G1", waypoints[wp_index][0]-waypoints[wp_index + 1][0], waypoints[wp_index][1]-waypoints[wp_index + 1][1])
+            arc_length += np.linalg.norm([waypoints[wp_index][0]-waypoints[wp_index + 1][0], waypoints[wp_index][1]-waypoints[wp_index + 1][1]])
             wp_index += 1
             if arc_length > self._lookahead:
                 break

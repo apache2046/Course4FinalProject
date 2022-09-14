@@ -128,7 +128,9 @@ class VelocityPlanner:
         start_speed = ego_state[3]
         # Generate a trapezoidal profile to decelerate to stop.
         if decelerate_to_stop:
+            print("G01", start_speed)
             profile = self.decelerate_profile(path, start_speed)
+            #print("G02", profile)
 
         # If we need to follow the lead vehicle, make sure we decelerate to its
         # speed by the time we reach the time gap point.
@@ -220,6 +222,7 @@ class VelocityPlanner:
         # perform a smooth deceleration and require a harder deceleration. Build
         # the path up in reverse to ensure we reach zero speed at the required
         # time.
+        print("G03", slow_speed, stop_index, brake_distance, decel_distance, stop_line_buffer, path_length, brake_distance + decel_distance + stop_line_buffer > path_length)
         if brake_distance + decel_distance + stop_line_buffer > path_length:
             speeds = []
             vf = 0.0
@@ -303,6 +306,9 @@ class VelocityPlanner:
             for i in range(stop_index, len(path[0])):
                 profile.append([path[0][i], path[1][i], 0.0])
 
+        print("PROFILE", brake_distance, decel_distance, stop_line_buffer)
+        for i in profile:
+            print(i)
         return profile
 
     # Computes a profile for following a lead vehicle..
@@ -497,7 +503,8 @@ def calc_distance(v_i, v_f, a):
 
     # TODO: INSERT YOUR CODE BETWEEN THE DASHED LINES
     # ------------------------------------------------------------------
-    d = (v_i ** 2 - v_f ** 2) / (2 * a)
+    #d = (v_i ** 2 - v_f ** 2) / (2 * a)
+    d = (v_f ** 2 - v_i ** 2) / (2 * a)
     return d
     # ------------------------------------------------------------------
 
@@ -528,7 +535,12 @@ def calc_final_speed(v_i, a, d):
 
     # TODO: INSERT YOUR CODE BETWEEN THE DASHED LINES
     # ------------------------------------------------------------------
-    v_f = sqrt(v_i ** 2 + 2 * a * d)
+    #print("CFS", v_i, a, d)
+    t = v_i ** 2 + 2 * a * d
+    if t > 0 :
+        v_f = sqrt(t)
+    else:
+        v_f = 0
     return v_f
     # ------------------------------------------------------------------
 

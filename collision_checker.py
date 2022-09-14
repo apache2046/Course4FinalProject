@@ -82,8 +82,9 @@ class CollisionChecker:
 
                 # TODO: INSERT YOUR CODE BETWEEN THE DASHED LINES
                 # --------------------------------------------------------------
-                circle_locations[:, 0] = path[0][j] + self._circle_offsets * cos(path[2][j])
-                circle_locations[:, 1] = path[1][j] + self._circle_offsets * sin(path[2][j])
+                #print("G5", self._circle_offsets,  cos(path[2][j]), type(self._circle_offsets), type(cos(path[2][j])), type(path[0]))
+                circle_locations[:, 0] = path[0][j] + np.array(self._circle_offsets) * cos(path[2][j])
+                circle_locations[:, 1] = path[1][j] + np.array(self._circle_offsets) * sin(path[2][j])
                 # --------------------------------------------------------------
 
                 # Assumes each obstacle is approximated by a collection of
@@ -166,7 +167,7 @@ class CollisionChecker:
                 # --------------------------------------------------------------
                 x_f = paths[i][0][-1]
                 y_f = paths[i][1][-1]
-                score = np.linalg.norm(x_f - goal_state[0], y_f - goal_state[1])
+                score = np.linalg.norm([x_f - goal_state[0], y_f - goal_state[1]])
                 # --------------------------------------------------------------
 
                 # Compute the "proximity to other colliding paths" score and
@@ -181,8 +182,8 @@ class CollisionChecker:
                             # --------------------------------------------------
                             x2_f = paths[j][0][-1]
                             y2_f = paths[j][1][-1]
-                            dist2 = np.linalg.norm(x_f - x2_f, y_f - y2_f)
-                            score += self._weight * (20 - dist2)
+                            dist2 = np.linalg.norm([x_f - x2_f, y_f - y2_f])
+                            score += self._weight * (10 - dist2)
                             # --------------------------------------------------
 
                             pass

@@ -50,6 +50,7 @@ class PathOptimizer:
                         z_points: List of yaw values (rad) along the spiral
         """
         # Save the terminal x, y, and theta.
+        #print("Po", xf, yf, tf)
         self._xf = xf
         self._yf = yf
         self._tf = tf
@@ -117,6 +118,7 @@ class PathOptimizer:
         # # Remember that a, b, c, d and s are lists
         # ...
         thetas = a * s + b / 2 * s ** 2 + c / 3 * s ** 3 + d / 4 * s ** 4
+        #print("T", thetas)
         return thetas
         # ------------------------------------------------------------------
 
@@ -146,6 +148,7 @@ class PathOptimizer:
                 y_points: List of y values (m) along the spiral
                 t_points: List of yaw values (rad) along the spiral
         """
+        #print("P", p)
         # These equations map from the optimization parameter space
         # to the spiral parameter space.   
         p = [0.0, p[0], p[1], 0.0, p[2]]    # recall p0 and p3 are set to 0
@@ -172,8 +175,10 @@ class PathOptimizer:
         # TODO: INSERT YOUR CODE BETWEEN THE DASHED LINES
         # ------------------------------------------------------------------
         t_points = self.thetaf(a, b, c, d, s_points)
-        x_points = scipy.integrate.cumtrapz(np.math.cos(t_points), s_points)
-        y_points = scipy.integrate.cumtrapz(np.math.sin(t_points), s_points)
+        #print("G3", t_points, s_points, type(t_points), type(s_points))
+        #print("G4", np.math.cos(t_points))
+        x_points = scipy.integrate.cumtrapz(np.cos(t_points), s_points, initial=None)
+        y_points = scipy.integrate.cumtrapz(np.sin(t_points), s_points, initial=None)
         return [x_points, y_points, t_points]
         # ------------------------------------------------------------------
 

@@ -190,6 +190,11 @@ def get_current_pose(measurement):
     y   = measurement.player_measurements.transform.location.y
     yaw = math.radians(measurement.player_measurements.transform.rotation.yaw)
 
+    ### FIXME 
+    #print("GHB", yaw, math.pi, yaw > math.pi)
+    #if yaw > math.pi:
+    #    yaw -= 2* math.pi
+
     return (x, y, yaw)
 
 def get_start_pos(scene):
@@ -552,7 +557,8 @@ def exec_waypoint_nav_demo(args):
         trajectory_fig.add_graph("stopsign_fence", window_size=1,
                                  x0=[stopsign_fences[0][0], stopsign_fences[0][2]],
                                  y0=[stopsign_fences[0][1], stopsign_fences[0][3]],
-                                 color="r")
+                                 #color="r")
+                                 color="b")
 
         # Load parked car points
         parkedcar_box_pts_np = np.array(parkedcar_box_pts)
@@ -728,6 +734,7 @@ def exec_waypoint_nav_demo(args):
                 #  # Calculate the goal state set in the local frame for the local planner.
                 #  # Current speed should be open loop for the velocity profile generation.
                 ego_state = [current_x, current_y, current_yaw, open_loop_speed]
+                print("EE", ego_state)
 
                 #  # Set lookahead based on current speed.
                 bp.set_lookahead(BP_LOOKAHEAD_BASE + BP_LOOKAHEAD_TIME * open_loop_speed)
@@ -746,6 +753,10 @@ def exec_waypoint_nav_demo(args):
 
                 #  # Transform those paths back to the global frame.
                 paths = local_planner.transform_paths(paths, ego_state)
+                #print("#", ego_state, goal_state_set, bp._goal_state, paths[0][0][-1], paths[0][1][-1], paths[0][2][-1])
+                print("#", ego_state, current_speed, goal_state_set)
+                for i in range(len(paths)):
+                    print("Path", paths[i][0][-1], paths[i][1][-1], paths[i][2][-1])
 
                 #  # Perform collision checking.
                 collision_check_array = lp._collision_checker.collision_check(paths, [parkedcar_box_pts])
@@ -758,6 +769,9 @@ def exec_waypoint_nav_demo(args):
                 else:
                     best_path = paths[best_index]
                     lp._prev_best_path = best_path
+                # print("B", bp._state, bp._stop_count, bp._follow_lead_vehicle)
+                # print("#", ego_state, goal_state_set, bp._goal_state, best_path[0][-1], best_path[1][-1], best_path[2][-1])
+                # print("_", best_path)
 
                 #  # Compute the velocity profile for the path, and compute the waypoints.
                 #  # Use the lead vehicle to inform the velocity profile's dynamic obstacle handling.
@@ -766,6 +780,7 @@ def exec_waypoint_nav_demo(args):
                 lead_car_state = [lead_car_pos[1][0], lead_car_pos[1][1], lead_car_speed[1]]
                 decelerate_to_stop = bp._state == behavioural_planner.DECELERATE_TO_STOP
                 local_waypoints = lp._velocity_planner.compute_velocity_profile(best_path, desired_speed, ego_state, current_speed, decelerate_to_stop, lead_car_state, bp._follow_lead_vehicle)
+                # print("=", local_waypoints)
                 # --------------------------------------------------------------
 
                 if local_waypoints != None:

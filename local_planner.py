@@ -88,12 +88,13 @@ class LocalPlanner:
         # TODO: INSERT YOUR CODE BETWEEN THE DASHED LINES
         # ------------------------------------------------------------------
         if goal_index < len(waypoints) - 1:
-            delta_x = waypoints[goal_index + 1][0] - waypoints[goal_index + 1][0]
-            delta_y = waypoints[goal_index + 1][1] - waypoints[goal_index + 1][1]
+            delta_x = waypoints[goal_index + 1][0] - waypoints[goal_index][0]
+            delta_y = waypoints[goal_index + 1][1] - waypoints[goal_index][1]
         else:
             delta_x = waypoints[goal_index][0] - waypoints[goal_index - 1][0]
             delta_y = waypoints[goal_index][1] - waypoints[goal_index - 1][1]
-        heading = np.math.atan2(delta_y, delta_x)
+        heading = np.arctan2(delta_y, delta_x)
+        print("Heading", heading)
         # ------------------------------------------------------------------
 
         # Compute the center goal state in the local frame using 
@@ -119,7 +120,8 @@ class LocalPlanner:
         # ------------------------------------------------------------------
         theta = -ego_state[2]
         rot_arr = np.array([[cos(theta), -sin(theta)],[sin(theta), cos(theta)]])
-        goal_x, goal_y = rot_arr @ goal_state_local[:1]
+        # print('G2', rot_arr, goal_state_local[:2])
+        goal_x, goal_y = rot_arr @ goal_state_local[:2]
         
         # ------------------------------------------------------------------
 
@@ -127,6 +129,7 @@ class LocalPlanner:
         # current ego yaw from the heading variable.
         # TODO: INSERT YOUR CODE BETWEEN THE DASHED LINES
         # ------------------------------------------------------------------
+        print("H", heading, theta)
         goal_t = heading + theta
         # ------------------------------------------------------------------
 
@@ -138,6 +141,8 @@ class LocalPlanner:
             goal_t -= 2*pi
         elif goal_t < -pi:
             goal_t += 2*pi
+        ### FIXME
+        #goal_t +=  pi
 
         # Compute and apply the offset for each path such that
         # all of the paths have the same heading of the goal state, 
@@ -154,8 +159,10 @@ class LocalPlanner:
             # and sin(goal_theta + pi/2), respectively.
             # TODO: INSERT YOUR CODE BETWEEN THE DASHED LINES
             # ------------------------------------------------------------------
-            x_offset = -offset * sin(heading)
-            y_offset = -offset * cos(heading)
+            #x_offset = -offset * sin(heading)
+            #y_offset = -offset * cos(heading)
+            x_offset = offset * cos(goal_t + pi/2)
+            y_offset = offset * sin(goal_t + pi/2)
             # ------------------------------------------------------------------
 
             goal_state_set.append([goal_x + x_offset, 
