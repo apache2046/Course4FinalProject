@@ -6,6 +6,7 @@
 
 import cutils
 import numpy as np
+from collections import deque
 
 class Controller2D(object):
     def __init__(self, waypoints):
@@ -26,6 +27,7 @@ class Controller2D(object):
         self._conv_rad_to_steer     = 180.0 / 70.0 / np.pi
         self._pi                    = np.pi
         self._2pi                   = 2.0 * np.pi
+        self.v_err_i = deque(maxlen = 10)
 
     def update_values(self, x, y, yaw, speed, timestamp, frame):
         self._current_x         = x
@@ -128,25 +130,52 @@ class Controller2D(object):
         self.vars.create_var('v_error', 0.0)
         self.vars.create_var('v_error_prev', 0.0)
         self.vars.create_var('v_error_integral', 0.0)
+        self.vars.create_var('v_err_previous', 0.0)
         
         # Skip the first frame to store previous values properly
         if self._start_control_loop:
 
-            self.vars.v_error           = v_desired - v
-            self.vars.v_error_integral += self.vars.v_error * \
-                                          (t - self.vars.t_prev)
-            v_error_rate_of_change      = (self.vars.v_error - self.vars.v_error_prev) /\
-                                          (t - self.vars.t_prev)
+            # self.vars.v_error           = v_desired - v
+            # self.vars.v_error_integral += self.vars.v_error * \
+            #                               (t - self.vars.t_prev)
+            # v_error_rate_of_change      = (self.vars.v_error - self.vars.v_error_prev) /\
+            #                               (t - self.vars.t_prev)
 
-            # cap the integrator sum to a min/max
-            self.vars.v_error_integral = \
-                    np.fmax(np.fmin(self.vars.v_error_integral, 
-                                    self.vars.integrator_max), 
-                            self.vars.integrator_min)
+            # # cap the integrator sum to a min/max
+            # self.vars.v_error_integral = \
+            #         np.fmax(np.fmin(self.vars.v_error_integral, 
+            #                         self.vars.integrator_max), 
+            #                 self.vars.integrator_min)
 
-            throttle_output = self.vars.kp * self.vars.v_error +\
-                              self.vars.ki * self.vars.v_error_integral +\
-                              self.vars.kd * v_error_rate_of_change
+            # acc = self.vars.kp * self.vars.v_error +\
+            #                   self.vars.ki * self.vars.v_error_integral +\
+            #                   self.vars.kd * v_error_rate_of_change
+            # if acc > 0:
+            #     throttle_output = acc
+            # else:
+            #     brake_output = -acc
+            v_err = v_desired - v
+            v_err_d = v_err - self.vars.v_err_previous
+
+            # self.v_err_i = deque(maxlen = 10)
+            self.v_err_i.append(np.clip(v_err, -0.2, 0.2))
+            v_err_i = sum(self.v_err_i)
+
+            Kp = 0.6
+            Ki = 0.1
+            Kd = +0.3
+            
+            acc_delta = Kp * v_err + Ki * v_err_i  + Kd * v_err_d
+
+            throttle_output = 0
+            brake_output    = 0
+            feed_forward = np.log(v_desired + 1) / 3.6
+
+            acc = feed_forward + acc_delta
+            if acc > 0:
+                throttle_output = acc
+            else:
+                brake_output = -acc
 
             # Find cross track error (assume point with closest distance)
             crosstrack_error = float("inf")
@@ -214,4 +243,5 @@ class Controller2D(object):
         self.vars.v_prev       = v
         self.vars.v_error_prev = self.vars.v_error
         self.vars.t_prev       = t
+        self.vars.v_err_previous = v_err
         

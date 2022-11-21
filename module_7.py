@@ -37,6 +37,8 @@ from carla.client     import make_carla_client, VehicleControl
 from carla.settings   import CarlaSettings
 from carla.tcp        import TCPConnectionError
 from carla.controller import utils
+import cv2
+from carla            import image_converter
 
 """
 Configurable params
@@ -73,12 +75,12 @@ WEATHERID = {
 SIMWEATHER = WEATHERID["CLEARNOON"]     # set simulation weather
 
 PLAYER_START_INDEX = 1      # spawn index for player (keep to 1)
-FIGSIZE_X_INCHES   = 8      # x figure size of feedback in inches
-FIGSIZE_Y_INCHES   = 8      # y figure size of feedback in inches
-PLOT_LEFT          = 0.1    # in fractions of figure width and height
+FIGSIZE_X_INCHES   = 7      # x figure size of feedback in inches
+FIGSIZE_Y_INCHES   = 4      # y figure size of feedback in inches
+PLOT_LEFT          = 0.07    # in fractions of figure width and height
 PLOT_BOT           = 0.1    
-PLOT_WIDTH         = 0.8
-PLOT_HEIGHT        = 0.8
+PLOT_WIDTH         = 0.9
+PLOT_HEIGHT        = 0.9
 
 WAYPOINTS_FILENAME = 'course4_waypoints.txt'  # waypoint file to load
 DIST_THRESHOLD_TO_LAST_WAYPOINT = 2.0  # some distance from last position before
@@ -93,10 +95,10 @@ CIRCLE_OFFSETS         = [-1.0, 1.0, 3.0] # m
 CIRCLE_RADII           = [1.5, 1.5, 1.5]  # m
 TIME_GAP               = 1.0              # s
 PATH_SELECT_WEIGHT     = 10
-A_MAX                  = 1.5              # m/s^2
+A_MAX                  = 1.5 * 1          # m/s^2
 SLOW_SPEED             = 2.0              # m/s
 STOP_LINE_BUFFER       = 3.5              # m
-LEAD_VEHICLE_LOOKAHEAD = 20.0             # m
+LEAD_VEHICLE_LOOKAHEAD = 15.0             # m
 LP_FREQUENCY_DIVISOR   = 2                # Frequency divisor to make the 
                                           # local planner operate at a lower
                                           # frequency than the controller
@@ -139,6 +141,14 @@ def make_carla_settings(args):
         SeedPedestrians=SEED_PEDESTRIANS,
         WeatherId=SIMWEATHER,
         QualityLevel=args.quality_level)
+    ##############################################################
+    camera0 = sensor.Camera('CameraRGB')
+    camera0.set_image_size(1920, 1080)
+    camera0.set_position(-10.0, 0.0, 6)
+    camera0.set_rotation(-10, 0.0, 0.0)
+    settings.add_sensor(camera0)
+#############################################################
+
     return settings
 
 class Timer(object):
@@ -435,6 +445,16 @@ def exec_waypoint_nav_demo(args):
             waypoints = list(csv.reader(waypoints_file_handle, 
                                         delimiter=',',
                                         quoting=csv.QUOTE_NONNUMERIC))
+            _wpts = np.array(waypoints)
+            _l = len(waypoints)
+            _i1 = np.arange(_l)
+            _i2 = np.arange((_l - 1 ) * 8 + 1) / 8
+            _d0 = np.interp(_i2, _i1, _wpts[:,0])
+            _d1 = np.interp(_i2, _i1, _wpts[:,1])
+            _d2 = np.interp(_i2, _i1, _wpts[:,2])
+            _ret = np.stack([_d0, _d1, _d2]).T
+            waypoints = _ret.tolist()
+            waypoints = [[x,y,v*1.5] for x,y,v in waypoints]
             waypoints_np = np.array(waypoints)
 
         #############################################
@@ -586,26 +606,26 @@ def exec_waypoint_nav_demo(args):
                 lp_1d.plot_new_dynamic_figure(title="Forward Speed (m/s)")
         forward_speed_fig.add_graph("forward_speed", 
                                     label="forward_speed", 
-                                    window_size=TOTAL_EPISODE_FRAMES)
+                                    window_size=300)#TOTAL_EPISODE_FRAMES)
         forward_speed_fig.add_graph("reference_signal", 
                                     label="reference_Signal", 
-                                    window_size=TOTAL_EPISODE_FRAMES)
+                                    window_size=300)#TOTAL_EPISODE_FRAMES)
 
         # Add throttle signals graph
         throttle_fig = lp_1d.plot_new_dynamic_figure(title="Throttle")
         throttle_fig.add_graph("throttle", 
                               label="throttle", 
-                              window_size=TOTAL_EPISODE_FRAMES)
+                              window_size=300)#TOTAL_EPISODE_FRAMES)
         # Add brake signals graph
         brake_fig = lp_1d.plot_new_dynamic_figure(title="Brake")
         brake_fig.add_graph("brake", 
                               label="brake", 
-                              window_size=TOTAL_EPISODE_FRAMES)
+                              window_size=300)#TOTAL_EPISODE_FRAMES)
         # Add steering signals graph
         steer_fig = lp_1d.plot_new_dynamic_figure(title="Steer")
         steer_fig.add_graph("steer", 
                               label="steer", 
-                              window_size=TOTAL_EPISODE_FRAMES)
+                              window_size=300)#TOTAL_EPISODE_FRAMES)
 
         # live plotter is disabled, hide windows
         if not enable_live_plot:
@@ -734,10 +754,13 @@ def exec_waypoint_nav_demo(args):
                 #  # Calculate the goal state set in the local frame for the local planner.
                 #  # Current speed should be open loop for the velocity profile generation.
                 ego_state = [current_x, current_y, current_yaw, open_loop_speed]
+                # ego_state = [current_x, current_y, current_yaw, current_speed]
                 print("EE", ego_state)
 
                 #  # Set lookahead based on current speed.
                 bp.set_lookahead(BP_LOOKAHEAD_BASE + BP_LOOKAHEAD_TIME * open_loop_speed)
+                # bp.set_lookahead(BP_LOOKAHEAD_BASE + BP_LOOKAHEAD_TIME * current_speed)
+
 
                 #  # Perform a state transition in the behavioural planner.
                 bp.transition_state(waypoints, ego_state, current_speed)
@@ -897,6 +920,22 @@ def exec_waypoint_nav_demo(args):
                     lp_traj.refresh()
                     lp_1d.refresh()
                     live_plot_timer.lap()
+
+                k = list(lp_traj._fcas.keys())[0]
+                image12 = np.frombuffer(lp_traj._fcas[k].tostring_rgb(), dtype='uint8')
+                image13 = image12.reshape(lp_traj._fcas[k].get_width_height()[::-1] + (3,))[:,:,::-1]
+                cv2.imwrite(f'/tmp/sim2/image{frame:04}.png', image13)
+
+                image24 = []
+                for k in lp_1d._fcas.keys():
+                    image22 = np.frombuffer(lp_1d._fcas[k].tostring_rgb(), dtype='uint8')
+                    image23 = image22.reshape(lp_1d._fcas[k].get_width_height()[::-1] + (3,))[:,:,::-1]
+                    image24.append(image23)
+                image24 = np.vstack(image24)
+                cv2.imwrite(f'/tmp/sim3/image{frame:04}.png', image24)
+
+                main_image = sensor_data.get('CameraRGB', None)
+                cv2.imwrite(f'/tmp/sim/image{frame:04}.png', image_converter.to_bgra_array(main_image)[:,:,:3])
 
             # Output controller command to CARLA server
             send_control_command(client,

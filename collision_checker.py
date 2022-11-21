@@ -179,11 +179,11 @@ class CollisionChecker:
                     else:
                         if not collision_check_array[j]:
                             # TODO: INSERT YOUR CODE BETWEEN THE DASHED LINES
-                            # --------------------------------------------------
-                            x2_f = paths[j][0][-1]
-                            y2_f = paths[j][1][-1]
-                            dist2 = np.linalg.norm([x_f - x2_f, y_f - y2_f])
-                            score += self._weight * (10 - dist2)
+                            # # --------------------------------------------------
+                            # x2_f = paths[j][0][-1]
+                            # y2_f = paths[j][1][-1]
+                            # dist2 = np.linalg.norm([x_f - x2_f, y_f - y2_f])
+                            # score += self._weight * (10 - dist2)
                             # --------------------------------------------------
 
                             pass
